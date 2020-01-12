@@ -6,23 +6,23 @@ var UserSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  deviceTokens: {
+  fcmToken: {
     type: String,
     required: true,
     unique: true,
   },
   handle: {
     type: String,
-    required: true,
+    //required: true,
     unique: true,
   },
   passwordHash: {
     type: String,
-    required: true,
+    //required: true,
   },
-  // Just the bitcoin address m/44'/1'/0'/0/0.
+  // Just the bitcoin address m/44'/1'/1'/0.
   // We can check a signature for it using bitcore-lib.
-  apiKey: {
+  xPub: {
     type: String,
     required: true,
     unique: true,
@@ -31,6 +31,6 @@ var UserSchema = new mongoose.Schema({
 });
 
 UserSchema.index({ email: 1 });
-UserSchema.index({ handle: 1 });
+//UserSchema.index({ handle: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -5,7 +5,12 @@
   "scripts": {
     "start": "node ./bin/www"
   },
+  "resolutions": {
+    "bitcore-lib": "^8.14.4"
+  },
   "dependencies": {
+    "bitcore-message": "^1.0.4",
+    "bitcore-mnemonic": "^8.14.4",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",

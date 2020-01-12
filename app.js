@@ -6,6 +6,11 @@ var logger = require('morgan');
 var admin = require('firebase-admin');
 var mongoose = require('mongoose');
 
+const Message = require('bitcore-message');
+const Mnemonic = require('bitcore-mnemonic');
+const Bitcore = Mnemonic.bitcore;
+const querystring = require('querystring');
+
 mongoose.connect('mongodb://127.0.0.1/cashbot', { useNewUrlParser: true });
 let db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -47,6 +52,7 @@ app.post('/notify', (req, res, next) => {
     .then((response) => {
       const failedTokens = [];
       if (response.failureCount > 0) {
+        console.error(response.failureCount);
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
             failedTokens.push(registrationTokens[idx]);
@@ -56,6 +62,7 @@ app.post('/notify', (req, res, next) => {
       console.log(`List of tokens that caused failures: ${JSON.stringify(failedTokens)}`);
       return res.status(200).end(`List of tokens that caused failures: ${JSON.stringify(failedTokens)}`);
     }).catch((err) => {
+      console.error('Error!');
       console.error(err);
       return res.status(500).end();
     });
@@ -97,16 +104,55 @@ app.post('/respond', (req, res) => {
 // User Routes
 const User = require('./schema/User');
 
-app.post('/createuser', (req, res) => {
-  let {
+app.post('/register', (req, res) => {
+  const {
     email,
-    deviceToken,
-    handle,
-    passwordHash,
-    apiKey,
+    fcmToken,
+    xPub,
+    // handle,
+    // passwordHash,
   } = req.body;
-  new User(req.body).save((err) => {
+  if (!email || !fcmToken || !xPub) {
+    return res.status(400).end('Missing parameters');
+  }
 
+  const {
+    s
+  } = req.query;
+  const sig = querystring.decode(s);
+  try {
+    //Validate bitcoin signature
+    const hdPublicKey = Bitcore.HDPublicKey(xPub);
+    const address = hdPublicKey.publicKey.toAddress('testnet').toString();
+    const payload = {
+      email,
+      fcmToken,
+      xPub
+    };
+    const message = JSON.stringify(payload);
+    const verification = Message(message).verify(address, s);
+
+    console.log('Verification: '+verification);
+    console.log(address);
+    console.log(message);
+    console.log(s);
+
+    if (!verification) {
+      throw new Error('Invalid signature!');
+    }
+  } catch (err) {
+    return res.status(400).json(err).end();
+  }
+  // Validated successfully
+  new User({
+    email,
+    fcmToken,
+    xPub
+  }).save((err) => {
+    if (err) {
+      return res.status(400).json(err).end();
+    }
+    return res.status(200).json(req.body).end();
   });
 });
 
