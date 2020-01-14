@@ -96,6 +96,39 @@ app.post('/notifyhp', (req, res, next) => {
     });
 });
 
+app.post('/notifyemail', (req, res, next) => {
+  console.log(req.body);
+  const email = req.body.email;
+  return User.findOne({ email }, (err, user) => {
+    if (err) {
+      return res.status(500).json(err).end();
+    }
+    return admin.messaging().sendMulticast({
+      data: {
+        method: 'InvoiceRequest'
+      },
+      android: {
+        priority: 'high'
+      },
+      tokens: [user.fcmToken]
+    }).then((response) => {
+      const failedTokens = [];
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            failedTokens.push(registrationTokens[idx]);
+          }
+        });
+      }
+      console.log(`List of tokens that caused failures: ${JSON.stringify(failedTokens)}`);
+      return res.status(200).end(`List of tokens that caused failures: ${JSON.stringify(failedTokens)}`);
+    }).catch((err) => {
+      console.error(err);
+      return res.status(500).end();
+    });
+  });
+});
+
 app.post('/respond', (req, res) => {
   console.log(req.body);
   res.status('200').json(req.body).end();
